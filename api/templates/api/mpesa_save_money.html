@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <title>Save Money with M-Pesa - Finance Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .save-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .save-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .save-body {
+            padding: 40px;
+        }
+        .form-control {
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .amount-input {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        .phone-input {
+            font-family: 'Courier New', monospace;
+        }
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .steps {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .step:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="save-container">
+        <div class="save-header">
+            <h2><i class="fas fa-piggy-bank me-3"></i>Save Money with M-Pesa</h2>
+            <p class="mb-0">Send money to your savings account instantly</p>
+        </div>
+
+        <div class="save-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                        {% else %}
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="info-box">
+                <h5><i class="fas fa-info-circle me-2"></i>How it works:</h5>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div>Enter your phone number and amount to save</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div>Click "Send STK Push" to initiate the transaction</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div>Check your phone and enter your M-Pesa PIN</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div>Money is saved to your account automatically</div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" id="saveMoneyForm">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label for="phone_number" class="form-label">
+                        <i class="fas fa-mobile-alt me-2"></i>Phone Number
+                    </label>
+                    <input type="tel" class="form-control phone-input" id="phone_number" name="phone_number"
+                           placeholder="0712345678 or 254712345678" required>
+                    <div class="form-text">Enter your M-Pesa registered phone number</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="amount" class="form-label">
+                        <i class="fas fa-money-bill-wave me-2"></i>Amount to Save (KSH)
+                    </label>
+                    <input type="number" class="form-control amount-input" id="amount" name="amount"
+                           min="1" step="0.01" placeholder="1000" required>
+                    <div class="form-text">Minimum amount: KSH 1</div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                    <button type="submit" class="btn btn-success btn-save">
+                        <i class="fas fa-paper-plane me-2"></i>Send STK Push
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Format phone number as user types
+        document.getElementById('phone_number').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+
+            // Add 254 prefix if it starts with 7 or 1 and has 9 digits
+            if (value.length === 9 && (value.startsWith('7') || value.startsWith('1'))) {
+                value = '254' + value;
+            }
+
+            // Limit to 12 digits (254XXXXXXXXX)
+            if (value.length > 12) {
+                value = value.substring(0, 12);
+            }
+
+            e.target.value = value;
+        });
+
+        // Form validation
+        document.getElementById('saveMoneyForm').addEventListener('submit', function(e) {
+            const phoneNumber = document.getElementById('phone_number').value;
+            const amount = document.getElementById('amount').value;
+
+            if (phoneNumber.length < 10) {
+                e.preventDefault();
+                alert('Please enter a valid phone number (at least 10 digits)');
+                return false;
+            }
+
+            if (parseFloat(amount) < 1) {
+                e.preventDefault();
+                alert('Amount must be at least KSH 1');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

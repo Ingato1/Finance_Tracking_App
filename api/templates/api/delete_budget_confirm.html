@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <title>Delete Budget Confirmation - Finance Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/mobile-responsive.css' %}" rel="stylesheet">
+    <style>
+        .sidebar {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding-top: 20px;
+            overflow-y: auto;
+        }
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .sidebar-overlay.show {
+            display: block;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 250px;
+            }
+        }
+        .mobile-nav-toggle {
+            display: block;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #333;
+            cursor: pointer;
+            padding: 8px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .mobile-nav-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        @media (min-width: 768px) {
+            .mobile-nav-toggle {
+                display: none !important;
+            }
+        }
+        .dashboard-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .warning-card {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+            border-left: 4px solid #dc3545;
+        }
+        .warning-card .card-header {
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle" onclick="toggleSidebar()">
+        <span class="navbar-toggler-icon">&#9776;</span>
+    </button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <h4 class="text-center">Finance Tracker</h4>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'add_expense' %}">Add Expense</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'set_budget' %}">Set Budget</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expense_list' %}">View Expenses</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'spending_analysis' %}">Spending Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_categories' %}">Manage Categories</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <h2>Delete Budget Confirmation</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card dashboard-card">
+                            <div class="card-header">
+                                <h5>Confirm Budget Deletion</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning">
+                                    <h6>⚠️ Warning</h6>
+                                    <p>Are you sure you want to delete this budget? This action cannot be undone.</p>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h6>Budget Details:</h6>
+                                        <p><strong>Month:</strong> {{ budget.month|date:"F Y" }}</p>
+                                        <p><strong>Amount:</strong> KSH {{ budget.amount }}</p>
+                                    </div>
+                                </div>
+
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger">Yes, Delete Budget</button>
+                                    <a href="{% url 'set_budget' %}" class="btn btn-secondary">Cancel</a>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card dashboard-card">
+                            <div class="card-header">
+                                <h5>Important Notes</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <ul class="mb-0">
+                                        <li>Deleting a budget will not affect your expense records</li>
+                                        <li>You can create a new budget for the same month if needed</li>
+                                        <li>Consider reviewing your expenses before deleting</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mobile sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.querySelector('.mobile-nav-toggle');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            if (window.innerWidth < 768) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

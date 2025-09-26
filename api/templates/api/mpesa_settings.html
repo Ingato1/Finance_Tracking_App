@@ -1,0 +1,247 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+{% endblock %}
+
+{% block title %}M-Pesa Settings - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'add_expense' %}">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expense_list' %}">
+                            <i class="fas fa-list"></i> Expense List
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'set_budget' %}">
+                            <i class="fas fa-wallet"></i> Set Budget
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'spending_analysis' %}">
+                            <i class="fas fa-chart-bar"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_categories' %}">
+                            <i class="fas fa-tags"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" id="mpesaDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-mobile-alt"></i> M-Pesa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item active" href="{% url 'mpesa_settings' %}">Settings</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_save_money' %}">Save Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_withdraw_money' %}">Withdraw Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_transactions' %}">Transactions</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_withdrawals' %}">Withdrawals</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">M-Pesa Settings</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <a href="{% url 'mpesa_save_money' %}" class="btn btn-sm btn-outline-primary">Save Money</a>
+                        <a href="{% url 'mpesa_withdraw_money' %}" class="btn btn-sm btn-outline-primary">Withdraw Money</a>
+                        <a href="{% url 'mpesa_transactions' %}" class="btn btn-sm btn-outline-primary">Transactions</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Form -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">M-Pesa Integration Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Info Box -->
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>How to get M-Pesa credentials:</h6>
+                                <ol class="mb-0">
+                                    <li>Go to <a href="https://developer.safaricom.co.ke" target="_blank">Safaricom Developer Portal</a></li>
+                                    <li>Create an account and register your application</li>
+                                    <li>Generate Consumer Key and Consumer Secret from your app dashboard</li>
+                                    <li>Get your Shortcode from Safaricom (usually 174379 for sandbox)</li>
+                                    <li>Generate your Passkey from the portal</li>
+                                </ol>
+                            </div>
+
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        {% if message.tags == 'success' %}
+                                            <i class="fas fa-check-circle me-2"></i>
+                                        {% else %}
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                        {% endif %}
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+
+                            <!-- Status Indicator -->
+                            <div class="mb-4">
+                                <h6>
+                                    <span class="badge {% if is_configured %}bg-success{% else %}bg-danger{% endif %} me-2">
+                                        <i class="fas fa-{% if is_configured %}check{% else %}times{% endif %}"></i>
+                                    </span>
+                                    Status: <strong>{% if is_configured %}Active{% else %}Inactive{% endif %}</strong>
+                                </h6>
+                                {% if is_configured %}
+                                    <div class="d-flex gap-2 mb-3">
+                                        <a href="{% url 'mpesa_test_connection' %}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-plug me-1"></i>Test Connection
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if not is_configured %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Please fill in all required fields to activate M-Pesa integration.
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <form method="post">
+                                {% csrf_token %}
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="consumer_key" class="form-label">
+                                            <i class="fas fa-key me-2"></i>Consumer Key
+                                        </label>
+                                        <input type="text" class="form-control" id="consumer_key" name="consumer_key"
+                                               value="{{ settings.consumer_key }}" placeholder="Your M-Pesa Consumer Key" required>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="consumer_secret" class="form-label">
+                                            <i class="fas fa-lock me-2"></i>Consumer Secret
+                                        </label>
+                                        <input type="password" class="form-control" id="consumer_secret" name="consumer_secret"
+                                               value="{{ settings.consumer_secret }}" placeholder="Your M-Pesa Consumer Secret" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="passkey" class="form-label">
+                                            <i class="fas fa-key me-2"></i>Passkey
+                                        </label>
+                                        <input type="password" class="form-control" id="passkey" name="passkey"
+                                               value="{{ settings.passkey }}" placeholder="Your M-Pesa Passkey" {% if not settings.is_sandbox %}required{% endif %}>
+                                        <div class="form-text">Required for production environment</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="shortcode" class="form-label">
+                                            <i class="fas fa-hashtag me-2"></i>Shortcode
+                                        </label>
+                                        <input type="text" class="form-control" id="shortcode" name="shortcode"
+                                               value="{{ settings.shortcode }}" placeholder="174379">
+                                        <div class="form-text">Default: 174379 (sandbox)</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="is_sandbox" name="is_sandbox"
+                                                   {% if settings.is_sandbox %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_sandbox">
+                                                <strong>Use Sandbox Environment</strong>
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Enable for testing, disable for production</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                                   {% if settings.is_active %}checked{% endif %}>
+                                            <label class="form-check-label" for="is_active">
+                                                <strong>Activate M-Pesa Integration</strong>
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Enable to start using M-Pesa features</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">M-Pesa Features</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                <a href="{% url 'mpesa_save_money' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-piggy-bank text-success me-2"></i>
+                                    Save Money
+                                    <small class="text-muted d-block">Send money to your savings</small>
+                                </a>
+                                <a href="{% url 'mpesa_withdraw_money' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-money-bill-wave text-warning me-2"></i>
+                                    Withdraw Money
+                                    <small class="text-muted d-block">Withdraw from your savings</small>
+                                </a>
+                                <a href="{% url 'mpesa_transactions' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-list text-info me-2"></i>
+                                    Transaction History
+                                    <small class="text-muted d-block">View all transactions</small>
+                                </a>
+                                <a href="{% url 'mpesa_withdrawals' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-history text-secondary me-2"></i>
+                                    Withdrawal History
+                                    <small class="text-muted d-block">View withdrawal requests</small>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+{% endblock %}

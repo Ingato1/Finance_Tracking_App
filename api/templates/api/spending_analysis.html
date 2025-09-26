@@ -1,0 +1,472 @@
+{% extends 'api/base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block head %}
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+{% endblock %}
+
+{% block title %}Enhanced Spending Analysis - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'add_expense' %}">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'set_budget' %}">
+                            <i class="fas fa-wallet"></i> Set Budget
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expense_list' %}">
+                            <i class="fas fa-list"></i> View Expenses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'spending_analysis' %}">
+                            <i class="fas fa-chart-bar"></i> Spending Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_categories' %}">
+                            <i class="fas fa-tags"></i> Manage Categories
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="mpesaDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-mobile-alt"></i> M-Pesa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'mpesa_settings' %}">Settings</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_save_money' %}">Save Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_withdraw_money' %}">Withdraw Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_transactions' %}">Transactions</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_withdrawals' %}">Withdrawals</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Enhanced Spending Analysis</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="exportData()">
+                            <i class="fas fa-download me-1"></i>Export Report
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="refreshData()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts and Notifications -->
+            <div id="alerts-section" class="mb-4">
+                {% if alerts %}
+                    {% for alert in alerts %}
+                        <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ alert.icon }} me-2"></i>
+                            {{ alert.message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Financial Goals Progress -->
+            {% if goals %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-target me-2"></i>Financial Goals Progress</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for goal in goals %}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ goal.name }}</h6>
+                                                    <div class="progress mb-2">
+                                                        <div class="progress-bar bg-{{ goal.color }}" role="progressbar"
+                                                             style="width: {{ goal.progress }}%"
+                                                             aria-valuenow="{{ goal.progress }}"
+                                                             aria-valuemin="0" aria-valuemax="100">
+                                                            {{ goal.progress }}%
+                                                        </div>
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        KSH {{ goal.current }} / KSH {{ goal.target }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Spending Trends -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Monthly Spending Trends (Last 12 Months)</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="monthlyTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Spending Predictions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="predictions-section">
+                                {% if predictions %}
+                                    <div class="mb-3">
+                                        <h6>Next Month Estimate</h6>
+                                        <h4 class="text-primary">KSH {{ predictions.next_month|floatformat:2 }}</h4>
+                                        {% if predictions.trend == 'increasing' %}
+                                            <small class="text-warning">
+                                                <i class="fas fa-arrow-up"></i> {{ predictions.change_percent|floatformat:1 }}% increase
+                                            </small>
+                                        {% elif predictions.trend == 'decreasing' %}
+                                            <small class="text-success">
+                                                <i class="fas fa-arrow-down"></i> {{ predictions.change_percent|floatformat:1 }}% decrease
+                                            </small>
+                                        {% else %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-minus"></i> Stable trend
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                    <hr>
+                                    <div class="mb-3">
+                                        <h6>Yearly Projection</h6>
+                                        <h4 class="text-info">KSH {{ predictions.yearly_projection|floatformat:2 }}</h4>
+                                        <small class="text-muted">Based on current trends</small>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">Not enough data for predictions</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget vs Actual Comparison -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Budget vs Actual Spending</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="budgetComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Analysis -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Category Spending Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="categoryPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Top Spending Categories</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                            <th>% of Total</th>
+                                            <th>Trend</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category in top_categories %}
+                                            <tr>
+                                                <td>{{ category.name|default:"Uncategorized" }}</td>
+                                                <td>KSH {{ category.amount|floatformat:2 }}</td>
+                                                <td>{{ category.percentage|floatformat:1 }}%</td>
+                                                <td>
+                                                    {% if category.trend == 'up' %}
+                                                        <i class="fas fa-arrow-up text-danger"></i>
+                                                    {% elif category.trend == 'down' %}
+                                                        <i class="fas fa-arrow-down text-success"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-minus text-muted"></i>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analytics Table -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Detailed Monthly Breakdown</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Total Spent</th>
+                                            <th>Budget</th>
+                                            <th>Variance</th>
+                                            <th>Top Category</th>
+                                            <th>Transactions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for month_data in monthly_breakdown %}
+                                            <tr>
+                                                <td>{{ month_data.month }}</td>
+                                                <td>KSH {{ month_data.total_spent|floatformat:2 }}</td>
+                                                <td>KSH {{ month_data.budget|floatformat:2 }}</td>
+                                                <td>
+                                                    {% if month_data.variance > 0 %}
+                                                        <span class="text-danger">
+                                                            +KSH {{ month_data.variance|floatformat:2 }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-success">
+                                                            -KSH {{ month_data.variance|absolute|floatformat:2 }}
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ month_data.top_category|default:"N/A" }}</td>
+                                                <td>{{ month_data.transaction_count }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script>
+    // Monthly Trends Chart
+    const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
+    const monthlyTrendsLabels = JSON.parse('{{ monthly_trends_labels|escapejs }}');
+    const monthlyTrendsData = JSON.parse('{{ monthly_trends_data|escapejs }}');
+
+    new Chart(monthlyTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyTrendsLabels,
+            datasets: [{
+                label: 'Monthly Spending (KSH)',
+                data: monthlyTrendsData,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Spending Trends Over Time'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KSH ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Budget vs Actual Chart
+    const budgetComparisonCtx = document.getElementById('budgetComparisonChart').getContext('2d');
+    const budgetComparisonLabels = JSON.parse('{{ budget_comparison_labels|escapejs }}');
+    const budgetComparisonBudget = JSON.parse('{{ budget_comparison_budget|escapejs }}');
+    const budgetComparisonActual = JSON.parse('{{ budget_comparison_actual|escapejs }}');
+
+    new Chart(budgetComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: budgetComparisonLabels,
+            datasets: [{
+                label: 'Budget (KSH)',
+                data: budgetComparisonBudget,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 1
+            }, {
+                label: 'Actual Spending (KSH)',
+                data: budgetComparisonActual,
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Budget vs Actual Spending'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KSH ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Category Pie Chart
+    const categoryPieCtx = document.getElementById('categoryPieChart').getContext('2d');
+    const categoryLabels = JSON.parse('{{ category_labels|escapejs }}');
+    const categoryAmounts = JSON.parse('{{ category_amounts|escapejs }}');
+
+    new Chart(categoryPieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryAmounts,
+                backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 159, 64)',
+                    'rgb(201, 203, 207)'
+                ],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Spending by Category'
+                }
+            }
+        }
+    });
+
+    // Export functionality
+    function exportData() {
+        {% if predictions %}
+        const predictionsData = JSON.parse('{{ predictions|escapejs }}');
+        {% else %}
+        const predictionsData = null;
+        {% endif %}
+
+        const data = {
+            monthly_trends: monthlyTrendsData,
+            category_data: categoryAmounts,
+            predictions: predictionsData,
+            export_date: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `spending-analysis-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert('Data exported successfully!');
+    }
+
+    // Refresh functionality
+    function refreshData() {
+        location.reload();
+    }
+</script>
+
+{% endblock %}

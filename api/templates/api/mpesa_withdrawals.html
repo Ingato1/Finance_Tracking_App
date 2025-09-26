@@ -1,0 +1,249 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+{% endblock %}
+
+{% block title %}Withdrawal History - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'add_expense' %}">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expense_list' %}">
+                            <i class="fas fa-list"></i> Expense List
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'set_budget' %}">
+                            <i class="fas fa-wallet"></i> Set Budget
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'spending_analysis' %}">
+                            <i class="fas fa-chart-bar"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_categories' %}">
+                            <i class="fas fa-tags"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="mpesaDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-mobile-alt"></i> M-Pesa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'mpesa_settings' %}">Settings</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_save_money' %}">Save Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_withdraw_money' %}">Withdraw Money</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mpesa_transactions' %}">Transactions</a></li>
+                            <li><a class="dropdown-item active" href="{% url 'mpesa_withdrawals' %}">Withdrawals</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Withdrawal History</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <a href="{% url 'mpesa_withdraw_money' %}" class="btn btn-sm btn-outline-primary">Withdraw Money</a>
+                        <a href="{% url 'mpesa_save_money' %}" class="btn btn-sm btn-outline-primary">Save Money</a>
+                        <a href="{% url 'mpesa_transactions' %}" class="btn btn-sm btn-outline-primary">Transactions</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Withdrawn</h5>
+                            <h3 class="text-success">KSH {{ total_withdrawn|floatformat:2 }}</h3>
+                            <p class="card-text text-muted">Successfully withdrawn</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Withdrawals</h5>
+                            <h3 class="text-warning">{{ pending_withdrawals }}</h3>
+                            <p class="card-text text-muted">Awaiting processing</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Requests</h5>
+                            <h3 class="text-info">{{ withdrawals|length }}</h3>
+                            <p class="card-text text-muted">All withdrawal requests</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Withdrawal History -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Withdrawal Requests</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if withdrawals %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Phone Number</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Receipt Number</th>
+                                        <th>Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for withdrawal in withdrawals %}
+                                        <tr>
+                                            <td>{{ withdrawal.created_at|date:"M d, Y H:i" }}</td>
+                                            <td>{{ withdrawal.phone_number }}</td>
+                                            <td class="fw-bold">KSH {{ withdrawal.amount|floatformat:2 }}</td>
+                                            <td>
+                                                {% if withdrawal.status == 'completed' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check"></i> Completed
+                                                    </span>
+                                                {% elif withdrawal.status == 'pending' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock"></i> Pending
+                                                    </span>
+                                                {% elif withdrawal.status == 'failed' %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times"></i> Failed
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ withdrawal.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if withdrawal.mpesa_receipt_number %}
+                                                    {{ withdrawal.mpesa_receipt_number }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if withdrawal.response_description %}
+                                                    <small class="text-muted">{{ withdrawal.response_description }}</small>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No withdrawal history</h5>
+                            <p class="text-muted">You haven't made any withdrawal requests yet.</p>
+                            <a href="{% url 'mpesa_withdraw_money' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Make Your First Withdrawal
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Legend -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Status Legend</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <span class="badge bg-success me-2">
+                                <i class="fas fa-check"></i> Completed
+                            </span>
+                            <small class="text-muted">Successfully processed and sent to M-Pesa</small>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-warning me-2">
+                                <i class="fas fa-clock"></i> Pending
+                            </span>
+                            <small class="text-muted">Request submitted, awaiting processing</small>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-danger me-2">
+                                <i class="fas fa-times"></i> Failed
+                            </span>
+                            <small class="text-muted">Request failed or was rejected</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+// Auto-refresh pending withdrawals every 30 seconds
+let refreshInterval;
+
+function startAutoRefresh() {
+    refreshInterval = setInterval(function() {
+        const pendingCount = parseInt('{{ pending_withdrawals }}');
+        if (pendingCount > 0) {
+            // You can add AJAX call here to refresh the page or update specific elements
+            console.log('Checking for withdrawal status updates...');
+        }
+    }, 30000); // 30 seconds
+}
+
+// Start auto-refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    startAutoRefresh();
+});
+
+// Clear interval when page unloads
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+</script>
+
+{% endblock %}
