@@ -151,7 +151,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 if DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 else:
-    STATIC_ROOT = os.path.join('/tmp', 'staticfiles')
+    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,20 +1,16 @@
 {
-  "version": 2,
-  "buildCommand": "python manage.py collectstatic --noinput && python manage.py migrate",
-  "builds": [
-    {
-      "src": "vercel_app.py",
-      "use": "@vercel/python"
+  "framework": null,
+  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate",
+  "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "vercel_app.py": {
+      "runtime": "python3.11"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/vercel_app.py"
+      "source": "/(.*)",
+      "destination": "/vercel_app.py"
     }
   ]
 }
