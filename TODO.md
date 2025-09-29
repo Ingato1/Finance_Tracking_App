@@ -27,3 +27,21 @@
 - [x] Add URL for the check pending transactions view
 - [x] Add button in transactions template to trigger pending check
 - [x] Test the pending transaction check functionality
+
+## Server Setup Tasks
+- [x] Create virtual environment
+- [x] Install dependencies
+- [x] Apply database migrations
+- [x] Start Django development server
+
+## Logo and Branding Update
+- [x] Change app name from "Finance Tracker" to "SaveWise" in login template
+- [x] Change app name from "Finance Tracker" to "SaveWise" in register template
+- [x] Update base template title to "SaveWise"
+- [x] Update dashboard title to "SaveWise"
+
+## Problem Fixing
+- [x] Run python manage.py check - no issues found
+- [x] Verify all migrations are applied
+- [x] Fix failing tests (currently 1 failure in test suite)
+- [x] Ensure app is deployment-ready for Vercel

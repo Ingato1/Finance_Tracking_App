@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <title>View Expenses - Finance Tracker</title>
+    <title>View Expenses - SaveWise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/mobile-responsive.css' %}" rel="stylesheet">
+    <meta name="csrf-token" content="{% csrf_token %}">
     <style>
         .sidebar {
             background-color: #f8f9fa;
@@ -111,6 +112,7 @@
     </style>
 </head>
 <body>
+    <input type="hidden" name="csrfmiddlewaretoken" value="{% csrf_token %}">
     <!-- Mobile Navigation Toggle -->
     <button class="mobile-nav-toggle" onclick="toggleSidebar()">
         <span class="navbar-toggler-icon">&#9776;</span>
@@ -122,7 +124,7 @@
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="p-3">
-            <h4 class="text-center mb-4">Finance Tracker</h4>
+            <h4 class="text-center mb-4">SaveWise</h4>
             <hr>
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -216,6 +218,7 @@
                                             <th>Amount</th>
                                             <th>Category</th>
                                             <th>Frequency</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -234,6 +237,10 @@
                                                         {{ expense.get_frequency_display }}
                                                     </span>
                                                 </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editExpense({{ expense.id }})">Edit</button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense({{ expense.id }})">Delete</button>
+                                                </td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -241,7 +248,7 @@
                                         <tr class="table-primary">
                                             <td colspan="2"><strong>Total</strong></td>
                                             <td><strong>KSH {{ total_amount }}</strong></td>
-                                            <td colspan="2"></td>
+                                            <td colspan="3"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -310,7 +317,7 @@
 
                 for (var j = 0; j < cols.length; j++) {
                     // Remove badge content and get clean text
-                    let text = cols[j].innerText;
+                    var text = cols[j].innerText;
                     if (text.includes('KSH')) {
                         text = text.replace('KSH', '');
                     }
@@ -340,6 +347,64 @@
             // Add link to DOM and click it
             document.body.appendChild(downloadLink);
             downloadLink.click();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Edit Expense
+        function editExpense(expenseId) {
+            var url = '/api/expenses/edit/' + expenseId + '/';
+            console.log('Navigating to edit URL:', url);
+            window.location.href = url;
+        }
+
+        // Delete Expense
+        function deleteExpense(expenseId) {
+            console.log('Delete initiated for expense ID:', expenseId);
+            if (confirm('Are you sure you want to delete this expense?')) {
+                var csrfToken = getCookie('csrftoken');
+                console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
+                var url = '/api/expenses/delete/' + expenseId + '/';
+                console.log('Delete URL:', url);
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(function(response) {
+                    console.log('Delete response status:', response.status);
+                    console.log('Delete response ok:', response.ok);
+                    if (response.ok) {
+                        console.log('Delete successful, reloading page');
+                        location.reload();
+                    } else {
+                        console.log('Delete failed, status:', response.status);
+                        return response.text().then(text => {
+                            console.log('Response text:', text);
+                            alert('Error deleting expense: ' + response.status);
+                        });
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Fetch error:', error);
+                    alert('Error deleting expense: ' + error.message);
+                });
+            }
         }
     </script>
 </body>

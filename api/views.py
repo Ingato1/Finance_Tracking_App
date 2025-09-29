@@ -252,6 +252,32 @@ def expense_list(request):
     })
 
 @login_required
+def edit_expense(request, expense_id):
+    expense = get_object_or_404(Expense, id=expense_id, user=request.user)
+
+    if request.method == 'POST':
+        form = ExpenseForm(request.POST, instance=expense)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Expense updated successfully!')
+            return redirect('expense_list')
+    else:
+        form = ExpenseForm(instance=expense)
+
+    return render(request, 'api/add_expense.html', {'form': form, 'edit': True, 'expense': expense})
+
+@login_required
+def delete_expense(request, expense_id):
+    expense = get_object_or_404(Expense, id=expense_id, user=request.user)
+
+    if request.method == 'POST':
+        expense.delete()
+        messages.success(request, 'Expense deleted successfully!')
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@login_required
 def spending_analysis(request):
     # Get expenses from the last 12 months for better trends with select_related
     twelve_months_ago = (timezone.now() - timedelta(days=365)).replace(day=1)

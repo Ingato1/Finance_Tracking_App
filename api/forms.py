@@ -125,7 +125,7 @@ class CategoryForm(forms.ModelForm):
 
     class Meta:
         model = ExpenseCategory
-        fields = ['name', 'description', 'custom_name']
+        fields = ['name', 'description']
         widgets = {
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

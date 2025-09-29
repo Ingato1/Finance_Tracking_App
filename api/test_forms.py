@@ -29,7 +29,7 @@ class CategoryFormTestCase(TestCase):
         }
         form = CategoryForm(data=form_data)
         self.assertFalse(form.is_valid())
-        self.assertIn("Please specify a name for the 'Others' category.", str(form.errors))
+        self.assertIn("Please specify a name for the 'Others' category.", form.non_field_errors())
 
     def test_regular_category_creation(self):
         """Test creating regular category without 'others'"""
@@ -48,10 +48,10 @@ class CategoryFormTestCase(TestCase):
         """Test that custom_name is trimmed of whitespace"""
         form_data = {
             'name': 'others',
-            'custom_name': '  Groceries  ',
+            'custom_name': '  Unique Groceries  ',
             'description': 'Food shopping'
         }
         form = CategoryForm(data=form_data)
         self.assertTrue(form.is_valid())
         category = form.save()
-        self.assertEqual(category.name, 'Groceries')  # Trimmed
+        self.assertEqual(category.name, 'Unique Groceries')  # Trimmed

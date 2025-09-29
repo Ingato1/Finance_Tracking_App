@@ -97,7 +97,7 @@ class BudgetTestCase(TestCase):
 
     def test_budget_in_spending_analysis(self):
         """Test budget data in spending analysis"""
-        response = self.client.get('/api/spending_analysis/')
+        response = self.client.get('/api/analysis/')
         self.assertEqual(response.status_code, 200)
         # Check if budget data is processed
         self.assertIn('budget_comparison_budget', response.context)

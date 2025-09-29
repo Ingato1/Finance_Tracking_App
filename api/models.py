@@ -12,15 +12,20 @@ class ExpenseCategory(models.Model):
         ('transport', 'Transport'),
         ('others', 'Others'),
     ]
-    
-    name = models.CharField(max_length=100, choices=PREDEFINED_CATEGORIES)
+
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    
+
     def __str__(self):
-        return self.get_name_display()
-    
+        # Check if name is in predefined categories
+        for choice_value, choice_display in self.PREDEFINED_CATEGORIES:
+            if self.name == choice_value:
+                return choice_display
+        # For custom names, return as is
+        return self.name
+
     def display_name(self):
-        return self.get_name_display()
+        return str(self)
 
 class Expense(models.Model):
     FREQUENCY_CHOICES = [
