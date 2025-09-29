@@ -46,4 +46,4 @@
 - [x] Fix failing tests (currently 1 failure in test suite)
 - [x] Ensure app is deployment-ready for Vercel
 - [x] Fix missing services.py causing 500 error
-- [x] Add database fallback for production without DATABASE_URL
+- [x] Require DATABASE_URL in production to prevent runtime errors

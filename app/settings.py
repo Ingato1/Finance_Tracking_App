@@ -93,7 +93,9 @@ WSGI_APPLICATION = 'app.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DEBUG and DATABASE_URL:
+if not DEBUG:
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is required in production")
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
