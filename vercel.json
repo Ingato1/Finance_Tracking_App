@@ -5,13 +5,6 @@
     {
       "src": "vercel_app.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "static/**",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "static"
-      }
     }
   ],
   "routes": [
