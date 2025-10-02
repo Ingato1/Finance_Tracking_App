@@ -1,49 +1,33 @@
-# Performance Optimization Tasks
+# TODO for M-Pesa Integration Thorough Testing and Improvements
 
-## Step 1: Add Database Indexes
-- [x] Add indexes to Expense model: (user, date), (user, category)
-- [x] Add indexes to Budget model: (user, month)
-- [x] Add indexes to MpesaTransaction model: (user, status), (user, created_at)
-- [x] Add indexes to MpesaWithdrawal model: (user, status), (user, created_at)
+- [ ] Test M-Pesa save money flow via web UI
+  - Submit form with valid and invalid data
+  - Verify success and error messages
+  - Confirm transaction records in database
 
-## Step 2: Run Migrations
-- [x] Run makemigrations to create migration for indexes
-- [x] Run migrate to apply indexes
+- [ ] Test M-Pesa withdrawal flow via web UI
+  - Submit withdrawal requests with valid and invalid data
+  - Verify available balance and minimum withdrawal enforcement
+  - Confirm withdrawal records in database
 
-## Step 3: Optimize Queries in Views
-- [x] Optimize dashboard view: add select_related for category in expenses
-- [x] Optimize spending_analysis view: combine queries, add select_related/prefetch_related
-- [x] Optimize expense_list view: add select_related
-- [x] Optimize mpesa_transactions and mpesa_withdrawals: ensure efficient queries
+- [ ] Test M-Pesa callback endpoints
+  - Simulate transaction and withdrawal status callbacks
+  - Verify status updates in database
 
-## Step 4: Add Timeouts to M-Pesa API Calls
-- [x] Add request timeouts to M-Pesa API calls in services.py
+- [ ] Add logging and timing in views to diagnose server performance issues
+  - Log request start and end times
+  - Log database query durations
+  - Identify slow operations causing browser timeouts
 
-## Step 5: Test Response Times
-- [x] Test response times for dashboard, spending_analysis, M-Pesa features, login/register
+- [ ] Test edge cases and error scenarios for M-Pesa API integration
+  - Invalid credentials
+  - Network failures
+  - API errors
 
-## Step 6: Add Pending Transaction Check Feature
-- [x] Add view to check and update status of pending M-Pesa transactions
-- [x] Add URL for the check pending transactions view
-- [x] Add button in transactions template to trigger pending check
-- [x] Test the pending transaction check functionality
+- [ ] Verify database consistency and transaction integrity after M-Pesa operations
 
-## Server Setup Tasks
-- [x] Create virtual environment
-- [x] Install dependencies
-- [x] Apply database migrations
-- [x] Start Django development server
+- [ ] Optimize template rendering if needed
 
-## Logo and Branding Update
-- [x] Change app name from "Finance Tracker" to "SaveWise" in login template
-- [x] Change app name from "Finance Tracker" to "SaveWise" in register template
-- [x] Update base template title to "SaveWise"
-- [x] Update dashboard title to "SaveWise"
+- [ ] Monitor server resource usage and network connectivity
 
-## Problem Fixing
-- [x] Run python manage.py check - no issues found
-- [x] Verify all migrations are applied
-- [x] Fix failing tests (currently 1 failure in test suite)
-- [x] Ensure app is deployment-ready for Vercel
-- [x] Fix missing services.py causing 500 error
-- [x] Require DATABASE_URL in production to prevent runtime errors
+- [ ] Provide detailed test reports and suggest code improvements based on findings

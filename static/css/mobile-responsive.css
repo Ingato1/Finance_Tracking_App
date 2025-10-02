@@ -109,7 +109,7 @@ body {
 /* Chart containers */
 .chart-container {
     position: relative;
-    height: 300px;
+    height: auto;
     width: 100%;
 }
 
