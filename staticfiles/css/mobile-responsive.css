@@ -1,4 +1,4 @@
-/* Mobile-First Responsive Design for Finance Tracker */
+/* Mobile-First Responsive Design for SaveWise */
 
 /* Base mobile styles (320px and up) */
 * {
@@ -109,7 +109,7 @@ body {
 /* Chart containers */
 .chart-container {
     position: relative;
-    height: 300px;
+    height: auto;
     width: 100%;
 }
 

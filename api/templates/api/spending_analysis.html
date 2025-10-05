@@ -6,7 +6,7 @@
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 {% endblock %}
 
-{% block title %}Enhanced Spending Analysis - Finance Tracker{% endblock %}
+{% block title %}Enhanced Spending Analysis - SaveWise{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -304,148 +304,180 @@
         </main>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <script>
-    // Monthly Trends Chart
-    const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
-    const monthlyTrendsLabels = JSON.parse('{{ monthly_trends_labels|escapejs }}');
-    const monthlyTrendsData = JSON.parse('{{ monthly_trends_data|escapejs }}');
+    // Helper function to safely parse JSON
+    function safeJSONParse(dataString, fallback = []) {
+        try {
+            return JSON.parse(dataString);
+        } catch (e) {
+            console.error('Error parsing JSON:', e, 'Data:', dataString);
+            return fallback;
+        }
+    }
 
-    new Chart(monthlyTrendsCtx, {
-        type: 'line',
-        data: {
-            labels: monthlyTrendsLabels,
-            datasets: [{
-                label: 'Monthly Spending (KSH)',
-                data: monthlyTrendsData,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top'
+    // Monthly Trends Chart
+    const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart');
+    if (monthlyTrendsCtx) {
+        const monthlyTrendsLabels = safeJSONParse('{{ monthly_trends_labels|escapejs }}', []);
+        const monthlyTrendsData = safeJSONParse('{{ monthly_trends_data|escapejs }}', []);
+
+        if (!{{ no_monthly_data|yesno:"true,false" }}) {
+            new Chart(monthlyTrendsCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: monthlyTrendsLabels,
+                    datasets: [{
+                        label: 'Monthly Spending (KSH)',
+                        data: monthlyTrendsData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
                 },
-                title: {
-                    display: true,
-                    text: 'Spending Trends Over Time'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'KSH ' + value.toLocaleString();
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Spending Trends Over Time'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'KSH ' + value.toLocaleString();
+                                }
+                            }
                         }
                     }
                 }
-            }
+            });
+        } else {
+            const ctx = monthlyTrendsCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No data available for monthly trends', 10, 50);
         }
-    });
+    }
 
     // Budget vs Actual Chart
-    const budgetComparisonCtx = document.getElementById('budgetComparisonChart').getContext('2d');
-    const budgetComparisonLabels = JSON.parse('{{ budget_comparison_labels|escapejs }}');
-    const budgetComparisonBudget = JSON.parse('{{ budget_comparison_budget|escapejs }}');
-    const budgetComparisonActual = JSON.parse('{{ budget_comparison_actual|escapejs }}');
+    const budgetComparisonCtx = document.getElementById('budgetComparisonChart');
+    if (budgetComparisonCtx) {
+        const budgetComparisonLabels = safeJSONParse('{{ budget_comparison_labels|escapejs }}', []);
+        const budgetComparisonBudget = safeJSONParse('{{ budget_comparison_budget|escapejs }}', []);
+        const budgetComparisonActual = safeJSONParse('{{ budget_comparison_actual|escapejs }}', []);
 
-    new Chart(budgetComparisonCtx, {
-        type: 'bar',
-        data: {
-            labels: budgetComparisonLabels,
-            datasets: [{
-                label: 'Budget (KSH)',
-                data: budgetComparisonBudget,
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                borderColor: 'rgb(54, 162, 235)',
-                borderWidth: 1
-            }, {
-                label: 'Actual Spending (KSH)',
-                data: budgetComparisonActual,
-                backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                borderColor: 'rgb(255, 99, 132)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top'
+        if (budgetComparisonLabels.length > 0) {
+            new Chart(budgetComparisonCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: budgetComparisonLabels,
+                    datasets: [{
+                        label: 'Budget (KSH)',
+                        data: budgetComparisonBudget,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Actual Spending (KSH)',
+                        data: budgetComparisonActual,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1
+                    }]
                 },
-                title: {
-                    display: true,
-                    text: 'Budget vs Actual Spending'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'KSH ' + value.toLocaleString();
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Budget vs Actual Spending'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'KSH ' + value.toLocaleString();
+                                }
+                            }
                         }
                     }
                 }
-            }
+            });
+        } else {
+            const ctx = budgetComparisonCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No budget data available', 10, 50);
         }
-    });
+    }
 
     // Category Pie Chart
-    const categoryPieCtx = document.getElementById('categoryPieChart').getContext('2d');
-    const categoryLabels = JSON.parse('{{ category_labels|escapejs }}');
-    const categoryAmounts = JSON.parse('{{ category_amounts|escapejs }}');
+    const categoryPieCtx = document.getElementById('categoryPieChart');
+    if (categoryPieCtx) {
+        const categoryLabels = safeJSONParse('{{ category_labels|escapejs }}', []);
+        const categoryAmounts = safeJSONParse('{{ category_amounts|escapejs }}', []);
 
-    new Chart(categoryPieCtx, {
-        type: 'doughnut',
-        data: {
-            labels: categoryLabels,
-            datasets: [{
-                data: categoryAmounts,
-                backgroundColor: [
-                    'rgb(255, 99, 132)',
-                    'rgb(54, 162, 235)',
-                    'rgb(255, 205, 86)',
-                    'rgb(75, 192, 192)',
-                    'rgb(153, 102, 255)',
-                    'rgb(255, 159, 64)',
-                    'rgb(201, 203, 207)'
-                ],
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+        if (categoryAmounts.length > 0) {
+            new Chart(categoryPieCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryAmounts,
+                        backgroundColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)',
+                            'rgb(75, 192, 192)',
+                            'rgb(153, 102, 255)',
+                            'rgb(255, 159, 64)',
+                            'rgb(201, 203, 207)'
+                        ],
+                        hoverOffset: 4
+                    }]
                 },
-                title: {
-                    display: true,
-                    text: 'Spending by Category'
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Spending by Category'
+                        }
+                    }
                 }
-            }
+            });
+        } else {
+            const ctx = categoryPieCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No category data available', 10, 50);
         }
-    });
+    }
 
     // Export functionality
     function exportData() {
+        let predictionsData = null;
         {% if predictions %}
-        const predictionsData = JSON.parse('{{ predictions|escapejs }}');
-        {% else %}
-        const predictionsData = null;
+        predictionsData = safeJSONParse('{{ predictions|escapejs }}', null);
         {% endif %}
 
         const data = {
-            monthly_trends: monthlyTrendsData,
-            category_data: categoryAmounts,
+            monthly_trends: safeJSONParse('{{ monthly_trends_data|escapejs }}', []),
+            category_data: safeJSONParse('{{ category_amounts|escapejs }}', []),
             predictions: predictionsData,
             export_date: new Date().toISOString()
         };
