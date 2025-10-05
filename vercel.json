@@ -1,27 +1,16 @@
+
 {
   "version": 2,
   "builds": [
     {
       "src": "api/vercel_app.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build"
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "api/vercel_app.py"
+      "dest": "/api/vercel_app.py"
     }
-  ],
-  "env": {
-    "PYTHONPATH": "@",
-    "DJANGO_SETTINGS_MODULE": "app.settings"
-  }
+  ]
 }
