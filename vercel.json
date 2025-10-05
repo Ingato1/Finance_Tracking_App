@@ -2,15 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles_build"
-      }
+      "src": "api/vercel_app.py",
+      "use": "@vercel/python"
     },
     {
-      "src": "api/wsgi.py",
-      "use": "@vercel/python"
+      "src": "build_files.sh",
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
@@ -20,7 +17,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "api/wsgi.py"
+      "dest": "api/vercel_app.py"
     }
   ],
   "env": {

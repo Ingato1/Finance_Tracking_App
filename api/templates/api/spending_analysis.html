@@ -323,6 +323,161 @@
         const monthlyTrendsLabels = safeJSONParse('{{ monthly_trends_labels|escapejs }}', []);
         const monthlyTrendsData = safeJSONParse('{{ monthly_trends_data|escapejs }}', []);
 
+        if (monthlyTrendsLabels.length > 0 && monthlyTrendsData.length > 0) {
+            new Chart(monthlyTrendsCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyTrendsLabels,
+                    datasets: [{
+                        label: 'Monthly Spending',
+                        data: monthlyTrendsData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Monthly Spending Trends'
+                        }
+                    }
+                }
+            });
+        } else {
+            const ctx = monthlyTrendsCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No data available for monthly trends', 10, 50);
+        }
+    }
+
+    // Category Pie Chart
+    const categoryPieCtx = document.getElementById('categoryPieChart');
+    if (categoryPieCtx) {
+        const categoryLabels = safeJSONParse('{{ category_labels|escapejs }}', []);
+        const categoryAmounts = safeJSONParse('{{ category_amounts|escapejs }}', []);
+
+        if (categoryLabels.length > 0 && categoryAmounts.length > 0) {
+            new Chart(categoryPieCtx, {
+                type: 'pie',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryAmounts,
+                        backgroundColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)',
+                            'rgb(75, 192, 192)',
+                            'rgb(153, 102, 255)',
+                            'rgb(255, 159, 64)',
+                            'rgb(201, 203, 207)'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Spending by Category'
+                        }
+                    }
+                }
+            });
+        } else {
+            const ctx = categoryPieCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No category data available', 10, 50);
+        }
+    }
+
+    // Budget Comparison Chart
+    const budgetComparisonCtx = document.getElementById('budgetComparisonChart');
+    if (budgetComparisonCtx) {
+        const budgetLabels = safeJSONParse('{{ budget_comparison_labels|escapejs }}', []);
+        const budgetAmounts = safeJSONParse('{{ budget_comparison_budget|escapejs }}', []);
+        const actualAmounts = safeJSONParse('{{ budget_comparison_actual|escapejs }}', []);
+
+        if (budgetLabels.length > 0 && budgetAmounts.length > 0 && actualAmounts.length > 0) {
+            new Chart(budgetComparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: budgetLabels,
+                    datasets: [
+                        {
+                            label: 'Budget',
+                            data: budgetAmounts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                        },
+                        {
+                            label: 'Actual Spending',
+                            data: actualAmounts,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Budget vs Actual Spending'
+                        }
+                    }
+                }
+            });
+        } else {
+            const ctx = budgetComparisonCtx.getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillText('No budget data available', 10, 50);
+        }
+    }
+
+    // Export functionality
+    function exportData() {
+        let predictionsData = null;
+        {% if predictions %}
+        predictionsData = safeJSONParse('{{ predictions|escapejs }}', null);
+        {% endif %}
+
+        const data = {
+            monthly_trends: safeJSONParse('{{ monthly_trends_data|escapejs }}', []),
+            category_data: safeJSONParse('{{ category_amounts|escapejs }}', []),
+            predictions: predictionsData,
+            export_date: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `spending-analysis-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert('Data exported successfully!');
+    }
+
+    // Refresh functionality
+    function refreshData() {
+        location.reload();
+    }
+</script>
+
         if (!{{ no_monthly_data|yesno:"true,false" }}) {
             new Chart(monthlyTrendsCtx.getContext('2d'), {
                 type: 'line',
