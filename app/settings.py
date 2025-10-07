@@ -30,15 +30,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-b0(r)e&3&7@$c_!gffr#p
 if os.environ.get('VERCEL'):
     DEBUG = False
     ALLOWED_HOSTS = ['.vercel.app', '.now.sh', '127.0.0.1', 'localhost']
-    
-    # Use SQLite for simplicity on Vercel
+
+    # Use SQLite for Vercel - no DATABASE_URL required
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': '/tmp/db.sqlite3',  # Use /tmp directory on Vercel
         }
     }
-    
+
     # Static files configuration for Vercel
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
