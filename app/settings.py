@@ -30,41 +30,43 @@ if IS_VERCEL:
     DEBUG = False
     ALLOWED_HOSTS = ['.vercel.app', '.now.sh', '127.0.0.1', 'localhost']
 
-    # Database configuration for Vercel
-    if 'DATABASE_URL' in os.environ:
-        DATABASES = {
-            'default': dj_database_url.config(
-                default=os.getenv('DATABASE_URL'),
-                conn_max_age=600,
-                ssl_require=True
-            )
-        }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': '/tmp/db.sqlite3',  # Use /tmp directory on Vercel
-            }
-        }
-
     # Static files configuration for Vercel
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
-    
+
 else:
     DEBUG = True
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-    
-    # SQLite for local development
+
+    STATIC_URL = '/static/'
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+# Database configuration - works for both Vercel and local
+if 'DATABASE_URL' in os.environ:
+    # Use DATABASE_URL if available (both Vercel and local with DATABASE_URL)
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+elif IS_VERCEL:
+    # Vercel environment but no DATABASE_URL - use SQLite in /tmp
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3',
+        }
+    }
+else:
+    # Local development with SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-    
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Security settings for production
 if not DEBUG:
