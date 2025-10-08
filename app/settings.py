@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,13 +30,18 @@ if IS_VERCEL:
     DEBUG = False
     ALLOWED_HOSTS = ['.vercel.app', '.now.sh', '127.0.0.1', 'localhost']
 
-    # Use SQLite for Vercel - no DATABASE_URL required
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/db.sqlite3',  # Use /tmp directory on Vercel
+    # Use DATABASE_URL if provided, otherwise use SQLite
+    if 'DATABASE_URL' in os.environ and dj_database_url:
+        DATABASES = {
+            'default': dj_database_url.config()
         }
-    }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': '/tmp/db.sqlite3',  # Use /tmp directory on Vercel
+            }
+        }
 
     # Static files configuration for Vercel
     STATIC_URL = '/static/'
