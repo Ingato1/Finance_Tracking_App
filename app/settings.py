@@ -20,53 +20,56 @@ except ImportError:
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-b0(r)e&3&7@$c_!gffr#ppxe%g=51*u+tkvv#m4=b!dgf5@tcj')
-
 # Check if we're in Vercel production environment
 IS_VERCEL = os.environ.get('VERCEL')
 
+# Debug configuration
+DEBUG = not IS_VERCEL  # True in development, False in Vercel
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-123456789')
+if not SECRET_KEY and not DEBUG:
+    raise ValueError("SECRET_KEY environment variable is required in production")
+
+# Debug and Hosts configuration
 if IS_VERCEL:
     DEBUG = False
     ALLOWED_HOSTS = ['.vercel.app', '.now.sh', '127.0.0.1', 'localhost']
-
-    # Static files configuration for Vercel
-    STATIC_URL = '/static/'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
-
 else:
     DEBUG = True
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# Database configuration
+import dj_database_url
 
-# Database configuration - works for both Vercel and local
-if 'DATABASE_URL' in os.environ:
-    # Use DATABASE_URL if available (both Vercel and local with DATABASE_URL)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600,
+    )
+}
+
+if IS_VERCEL and not os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DATABASE', 'verceldb'),
+        'USER': os.environ.get('POSTGRES_USER', 'default'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
-elif IS_VERCEL:
-    # Vercel environment but no DATABASE_URL - use SQLite in /tmp
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/db.sqlite3',
-        }
-    }
-else:
-    # Local development with SQLite
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+
+# Static files configuration
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+if IS_VERCEL:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
+
+# Static files cache settings
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_MAX_AGE = 31536000  # 1 year in seconds
 
 # Security settings for production
 if not DEBUG:
@@ -79,6 +82,15 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    # Password settings
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.Argon2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    ]
 
 # Application definition
 INSTALLED_APPS = [
@@ -104,6 +116,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.RateLimitMiddleware',  # Rate limiting
 ]
 
 if DEBUG:
@@ -167,6 +180,15 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 # M-Pesa Integration Settings
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 INTERNAL_IPS = ['127.0.0.1']
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 # REMOVE ANY LINE THAT LOOKS LIKE THIS:
 # if not DEBUG and not os.environ.get('DATABASE_URL'):

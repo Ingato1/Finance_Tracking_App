@@ -1,5 +1,10 @@
 # TODO for M-Pesa Integration Thorough Testing and Improvements
 
+- [x] Add database connection test endpoint (/api/test-db/)
+  - Create test_db view that executes SELECT 1 query
+  - Add URL pattern for test-db endpoint
+  - Test endpoint returns success message when database is connected
+
 - [ ] Test M-Pesa save money flow via web UI
   - Submit form with valid and invalid data
   - Verify success and error messages

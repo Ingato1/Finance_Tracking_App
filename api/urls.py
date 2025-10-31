@@ -8,6 +8,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
 
     # Main application URLs
+    path('test-db/', views.test_db, name='test_db'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('add-expense/', views.add_expense, name='add_expense'),
     path('set-budget/', views.set_budget, name='set_budget'),

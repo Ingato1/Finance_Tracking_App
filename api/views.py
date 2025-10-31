@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
+from django.db import connection
 from django.db.models import Sum, Count, Q, CharField
 from django.db.models.functions import Concat
 from django.db.models import Value
@@ -22,6 +23,15 @@ import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+def test_db(request):
+    """Test database connection"""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return JsonResponse({'status': 'Database connected successfully'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def register(request):
     if request.method == 'POST':

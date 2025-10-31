@@ -43,4 +43,11 @@ if settings.DEBUG:
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Prefer serving from STATICFILES_DIRS in development (so files in /static are found)
+    doc_root = None
+    if hasattr(settings, 'STATICFILES_DIRS') and settings.STATICFILES_DIRS:
+        doc_root = settings.STATICFILES_DIRS[0]
+    else:
+        doc_root = settings.STATIC_ROOT
+
+    urlpatterns += static(settings.STATIC_URL, document_root=doc_root)
