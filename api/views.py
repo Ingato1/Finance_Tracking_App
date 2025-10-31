@@ -33,6 +33,49 @@ def test_db(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+def health(request):
+    """Health check endpoint.
+
+    Returns basic info about application status and database connectivity.
+    """
+    data = {
+        'status': 'ok',
+        'debug': settings.DEBUG,
+    }
+
+    # Database info
+    try:
+        default_db = settings.DATABASES.get('default', {})
+        engine = default_db.get('ENGINE', '')
+        name = default_db.get('NAME', '')
+
+        # quick connectivity check for non-sqlite dbs
+        db_ok = True
+        if 'sqlite' in engine:
+            # check if file exists when not in memory
+            if name and name != ':memory:':
+                db_ok = os.path.exists(name)
+        else:
+            # attempt a simple query
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+                    db_ok = True
+            except Exception:
+                db_ok = False
+
+        data['database'] = {
+            'engine': engine,
+            'name': name,
+            'connected': bool(db_ok),
+        }
+    except Exception as e:
+        data['database'] = {'error': str(e)}
+
+    return JsonResponse(data)
+
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)

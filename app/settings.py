@@ -50,13 +50,12 @@ DATABASES = {
 }
 
 if IS_VERCEL and not os.environ.get('DATABASE_URL'):
+    # When deploying on Vercel without a managed DATABASE_URL, use a writable
+    # temporary SQLite database so the app can still run (useful for demos).
+    # NOTE: For production you should provide a DATABASE_URL for a managed DB.
     DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DATABASE', 'verceldb'),
-        'USER': os.environ.get('POSTGRES_USER', 'default'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3',
     }
 
 # Static files configuration
