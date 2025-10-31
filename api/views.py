@@ -80,9 +80,18 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Account created successfully. You can now log in.')
-            return redirect('login')
+            try:
+                form.save()
+                messages.success(request, 'Account created successfully. You can now log in.')
+                return redirect('login')
+            except Exception as e:
+                # Log full exception and show a user-friendly message
+                logger.exception('Error during user registration: %s', e)
+                messages.error(request, 'An unexpected error occurred while creating your account. The team has been notified.')
+                # Fall through to re-render form with message
+        else:
+            # form invalid - show validation errors as usual
+            pass
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
@@ -91,17 +100,21 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        try:
+            user = authenticate(request, username=username, password=password)
 
-        if user is not None:
-            login(request, user)
-            messages.success(request, 'Welcome back! You have been logged in successfully.')
+            if user is not None:
+                login(request, user)
+                messages.success(request, 'Welcome back! You have been logged in successfully.')
 
-            # Redirect to next URL if provided, otherwise to dashboard
-            next_url = request.POST.get('next') or request.GET.get('next') or 'dashboard'
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Invalid username or password. Please try again.')
+                # Redirect to next URL if provided, otherwise to dashboard
+                next_url = request.POST.get('next') or request.GET.get('next') or 'dashboard'
+                return redirect(next_url)
+            else:
+                messages.error(request, 'Invalid username or password. Please try again.')
+        except Exception as e:
+            logger.exception('Error during login: %s', e)
+            messages.error(request, 'An unexpected error occurred while signing in. The team has been notified.')
 
     return render(request, 'registration/login.html')
 
