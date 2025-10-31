@@ -84,12 +84,19 @@ if not DEBUG:
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     SECURE_REFERRER_POLICY = 'same-origin'
-    # Password settings
+    # Password settings: prefer Argon2 if available, otherwise fall back to PBKDF2
     PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.Argon2PasswordHasher',
         'django.contrib.auth.hashers.PBKDF2PasswordHasher',
         'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
     ]
+    try:
+        # Only include Argon2PasswordHasher if the argon2 library is installed
+        import importlib
+        if importlib.util.find_spec('argon2') is not None:
+            PASSWORD_HASHERS.insert(0, 'django.contrib.auth.hashers.Argon2PasswordHasher')
+    except Exception:
+        # If detection fails for any reason, continue with PBKDF2-only hashers
+        pass
 
 # Application definition
 INSTALLED_APPS = [
