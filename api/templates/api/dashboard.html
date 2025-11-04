@@ -10,64 +10,71 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-            <div class="position-sticky pt-3">
-                <ul class="nav nav-pills flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{% url 'dashboard' %}">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'add_expense' %}">
-                            <i class="fas fa-plus"></i> Add Expense
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'set_budget' %}">
-                            <i class="fas fa-wallet"></i> Set Budget
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'expense_list' %}">
-                            <i class="fas fa-list"></i> View Expenses
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'spending_analysis' %}">
-                            <i class="fas fa-chart-bar"></i> Spending Analysis
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'manage_categories' %}">
-                            <i class="fas fa-tags"></i> Manage Categories
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="mpesaDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-mobile-alt"></i> M-Pesa
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'mpesa_settings' %}">Settings</a></li>
-                            <li><a class="dropdown-item" href="{% url 'mpesa_save_money' %}">Save Money</a></li>
-                            <li><a class="dropdown-item" href="{% url 'mpesa_withdraw_money' %}">Withdraw Money</a></li>
-                            <li><a class="dropdown-item" href="{% url 'mpesa_transactions' %}">Transactions</a></li>
-                            <li><a class="dropdown-item" href="{% url 'mpesa_withdrawals' %}">Withdrawals</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle d-md-none" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
 
-        <!-- Main content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay d-md-none" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar d-md-block">
+        <div class="position-sticky pt-3">
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'dashboard' %}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'add_expense' %}">
+                        <i class="fas fa-plus"></i> Add Expense
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'set_budget' %}">
+                        <i class="fas fa-wallet"></i> Set Budget
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'expense_list' %}">
+                        <i class="fas fa-list"></i> View Expenses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'spending_analysis' %}">
+                        <i class="fas fa-chart-bar"></i> Spending Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'manage_categories' %}">
+                        <i class="fas fa-tags"></i> Manage Categories
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="mpesaDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-mobile-alt"></i> M-Pesa
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'mpesa_settings' %}">Settings</a></li>
+                        <li><a class="dropdown-item" href="{% url 'mpesa_save_money' %}">Save Money</a></li>
+                        <li><a class="dropdown-item" href="{% url 'mpesa_withdraw_money' %}">Withdraw Money</a></li>
+                        <li><a class="dropdown-item" href="{% url 'mpesa_transactions' %}">Transactions</a></li>
+                        <li><a class="dropdown-item" href="{% url 'mpesa_withdrawals' %}">Withdrawals</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
