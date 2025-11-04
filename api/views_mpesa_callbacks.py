@@ -41,8 +41,8 @@ def mpesa_b2c_result(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-    data = json_lib.loads(request.body.decode('utf-8'))
-    logger.info(f"M-Pesa B2C result received: {_redact_payload(data)}")
+        data = json_lib.loads(request.body.decode('utf-8'))
+        logger.info(f"M-Pesa B2C result received: {_redact_payload(data)}")
 
         # Extract result data
         result_code = data.get('ResultCode', 1)
@@ -105,8 +105,8 @@ def mpesa_b2c_timeout(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-    data = json_lib.loads(request.body.decode('utf-8'))
-    logger.info(f"M-Pesa B2C timeout received: {_redact_payload(data)}")
+        data = json_lib.loads(request.body.decode('utf-8'))
+        logger.info(f"M-Pesa B2C timeout received: {_redact_payload(data)}")
 
         # Extract timeout data
         conversation_id = data.get('ConversationID')
@@ -136,8 +136,8 @@ def mpesa_stk_callback(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-    data = json_lib.loads(request.body.decode('utf-8'))
-    logger.info(f"M-Pesa STK callback received: {_redact_payload(data)}")
+        data = json_lib.loads(request.body.decode('utf-8'))
+        logger.info(f"M-Pesa STK callback received: {_redact_payload(data)}")
 
         # Extract transaction data
         merchant_request_id = data.get('MerchantRequestID')
