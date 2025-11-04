@@ -26,13 +26,44 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
+                        <li class="nav-item d-lg-none">
                             <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                        </li>
+                        <li class="nav-item d-lg-none">
+                            <a class="nav-link" href="{% url 'add_expense' %}">Add Expense</a>
+                        </li>
+                        <li class="nav-item d-lg-none">
+                            <a class="nav-link" href="{% url 'expense_list' %}">Expenses</a>
+                        </li>
+                        <li class="nav-item d-lg-none">
+                            <a class="nav-link" href="{% url 'manage_categories' %}">Categories</a>
+                        </li>
+                        <li class="nav-item d-lg-none">
+                            <a class="nav-link" href="{% url 'spending_analysis' %}">Analysis</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                        </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown d-none d-lg-block">
+                            <a class="nav-link dropdown-toggle" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown">
+                                Menu
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navDropdown">
+                                <li><a class="dropdown-item" href="{% url 'dashboard' %}">Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{% url 'add_expense' %}">Add Expense</a></li>
+                                <li><a class="dropdown-item" href="{% url 'expense_list' %}">Expenses</a></li>
+                                <li><a class="dropdown-item" href="{% url 'manage_categories' %}">Categories</a></li>
+                                <li><a class="dropdown-item" href="{% url 'spending_analysis' %}">Analysis</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'mpesa_settings' %}">M-Pesa</a></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                            </ul>
                         </li>
                     {% endif %}
                 </ul>

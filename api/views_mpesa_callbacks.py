@@ -8,6 +8,32 @@ from .models import MpesaWithdrawal, MpesaTransaction
 
 logger = logging.getLogger(__name__)
 
+
+def _redact_payload(obj, max_len=200):
+    """Recursively redact values that look sensitive or are too long before logging.
+
+    - Keys containing keywords like 'key','secret','pass','password','credential' are redacted.
+    - Long strings are truncated.
+    """
+    redacted = None
+    if isinstance(obj, dict):
+        redacted = {}
+        for k, v in obj.items():
+            lk = str(k).lower()
+            if any(s in lk for s in ('key', 'secret', 'pass', 'password', 'credential', 'token')):
+                redacted[k] = 'REDACTED'
+            else:
+                redacted[k] = _redact_payload(v, max_len=max_len)
+    elif isinstance(obj, list):
+        redacted = [_redact_payload(x, max_len=max_len) for x in obj]
+    elif isinstance(obj, str):
+        if len(obj) > max_len:
+            return obj[:max_len] + '...[truncated]'
+        return obj
+    else:
+        return obj
+    return redacted
+
 @csrf_exempt
 def mpesa_b2c_result(request):
     """Handle M-Pesa B2C result callback"""
@@ -15,8 +41,8 @@ def mpesa_b2c_result(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-        data = json_lib.loads(request.body.decode('utf-8'))
-        logger.info(f"M-Pesa B2C result received: {data}")
+    data = json_lib.loads(request.body.decode('utf-8'))
+    logger.info(f"M-Pesa B2C result received: {_redact_payload(data)}")
 
         # Extract result data
         result_code = data.get('ResultCode', 1)
@@ -79,8 +105,8 @@ def mpesa_b2c_timeout(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-        data = json_lib.loads(request.body.decode('utf-8'))
-        logger.info(f"M-Pesa B2C timeout received: {data}")
+    data = json_lib.loads(request.body.decode('utf-8'))
+    logger.info(f"M-Pesa B2C timeout received: {_redact_payload(data)}")
 
         # Extract timeout data
         conversation_id = data.get('ConversationID')
@@ -110,8 +136,8 @@ def mpesa_stk_callback(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
-        data = json_lib.loads(request.body.decode('utf-8'))
-        logger.info(f"M-Pesa STK callback received: {data}")
+    data = json_lib.loads(request.body.decode('utf-8'))
+    logger.info(f"M-Pesa STK callback received: {_redact_payload(data)}")
 
         # Extract transaction data
         merchant_request_id = data.get('MerchantRequestID')

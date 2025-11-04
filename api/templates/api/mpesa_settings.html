@@ -138,16 +138,16 @@
                                         <label for="consumer_key" class="form-label">
                                             <i class="fas fa-key me-2"></i>Consumer Key
                                         </label>
-                                        <input type="text" class="form-control" id="consumer_key" name="consumer_key"
-                                               value="{{ settings.consumer_key }}" placeholder="Your M-Pesa Consumer Key" required>
+                         <input type="text" class="form-control" id="consumer_key" name="consumer_key"
+                             value="" placeholder="Enter Consumer Key (hidden)" autocomplete="off">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label for="consumer_secret" class="form-label">
                                             <i class="fas fa-lock me-2"></i>Consumer Secret
                                         </label>
-                                        <input type="password" class="form-control" id="consumer_secret" name="consumer_secret"
-                                               value="{{ settings.consumer_secret }}" placeholder="Your M-Pesa Consumer Secret" required>
+                         <input type="password" class="form-control" id="consumer_secret" name="consumer_secret"
+                             value="" placeholder="Enter Consumer Secret (hidden)" autocomplete="new-password">
                                     </div>
                                 </div>
 
@@ -156,8 +156,8 @@
                                         <label for="passkey" class="form-label">
                                             <i class="fas fa-key me-2"></i>Passkey
                                         </label>
-                                        <input type="password" class="form-control" id="passkey" name="passkey"
-                                               value="{{ settings.passkey }}" placeholder="Your M-Pesa Passkey" {% if not settings.is_sandbox %}required{% endif %}>
+                         <input type="password" class="form-control" id="passkey" name="passkey"
+                             value="" placeholder="Enter Passkey (hidden)" autocomplete="new-password" {% if not settings.is_sandbox %}required{% endif %}>
                                         <div class="form-text">Required for production environment</div>
                                     </div>
 

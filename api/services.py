@@ -2,7 +2,7 @@ import requests
 import base64
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
 from .models import MpesaTransaction, MpesaWithdrawal
@@ -21,6 +21,7 @@ class MpesaService:
 
     def get_access_token(self):
         """Get access token from M-Pesa"""
+        # Reuse token if still valid
         if self.access_token and self.token_expires_at and datetime.now() < self.token_expires_at:
             return self.access_token
 
@@ -40,9 +41,10 @@ class MpesaService:
 
             if response.status_code == 200:
                 data = response.json()
-                self.access_token = data['access_token']
-                # Token expires in 3600 seconds (1 hour), we'll refresh 5 minutes early
-                self.token_expires_at = datetime.now().timestamp() + 3300
+                # store token and expiry as datetime (refresh 5 minutes early)
+                self.access_token = data.get('access_token')
+                expires_in = int(data.get('expires_in', 3600))
+                self.token_expires_at = datetime.now() + timedelta(seconds=max(0, expires_in - 300))
                 logger.info("M-Pesa access token obtained successfully")
                 return self.access_token
             else:
@@ -50,7 +52,7 @@ class MpesaService:
                 return None
 
         except Exception as e:
-            logger.error(f"Error getting access token: {str(e)}")
+            logger.exception(f"Error getting access token: {str(e)}")
             return None
 
     def stk_push(self, phone_number, amount, account_reference, transaction_desc):
@@ -58,7 +60,6 @@ class MpesaService:
         access_token = self.get_access_token()
         if not access_token:
             return {'error': 'Failed to get access token'}
-
         try:
             # Determine base URL
             base_url = "https://sandbox.safaricom.co.ke" if self.is_sandbox else "https://api.safaricom.co.ke"
@@ -92,8 +93,12 @@ class MpesaService:
             response = requests.post(f"{base_url}/mpesa/stkpush/v1/processrequest", json=payload, headers=headers, timeout=30)
 
             if response.status_code == 200:
-                data = response.json()
-                logger.info(f"STK push initiated: {data}")
+                try:
+                    data = response.json()
+                except ValueError:
+                    logger.error("STK push: invalid JSON returned")
+                    return {'error': 'Invalid response from provider'}
+                logger.info("STK push initiated")
                 return data
             else:
                 try:
@@ -102,12 +107,12 @@ class MpesaService:
                     error_msg = error_data.get('errorMessage', 'Unknown error')
                     logger.error(f"STK push failed with code {error_code}: {error_msg}")
                     return {'error': error_data}
-                except json.JSONDecodeError:
+                except ValueError:
                     logger.error(f"STK push failed: {response.text}")
                     return {'error': response.text}
 
         except Exception as e:
-            logger.error(f"Error in STK push: {str(e)}")
+            logger.exception(f"Error in STK push: {str(e)}")
             return {'error': str(e)}
 
     def stk_push_query(self, checkout_request_id):
@@ -191,12 +196,22 @@ class MpesaService:
             response = requests.post(f"{base_url}/mpesa/b2c/v1/paymentrequest", json=payload, headers=headers, timeout=30)
 
             if response.status_code == 200:
-                data = response.json()
-                logger.info(f"B2C payment initiated: {data}")
+                try:
+                    data = response.json()
+                except ValueError:
+                    logger.error("B2C payment: invalid JSON returned")
+                    return {'error': 'Invalid response from provider'}
+                logger.info("B2C payment initiated")
                 return data
             else:
-                logger.error(f"B2C payment failed: {response.text}")
-                return {'error': response.text}
+                # attempt to parse provider error JSON, otherwise return text
+                try:
+                    err = response.json()
+                    logger.error(f"B2C payment failed: {err}")
+                    return {'error': err}
+                except ValueError:
+                    logger.error(f"B2C payment failed: {response.text}")
+                    return {'error': response.text}
 
         except Exception as e:
             logger.error(f"Error in B2C payment: {str(e)}")
@@ -271,11 +286,12 @@ class MpesaService:
             )
 
             if 'error' not in result:
-                # Update withdrawal with M-Pesa details
-                withdrawal.checkout_request_id = result.get('CheckoutRequestID')
-                withdrawal.merchant_request_id = result.get('MerchantRequestID')
-                withdrawal.response_code = result.get('ResponseCode')
-                withdrawal.response_description = result.get('CustomerMessage')
+                # Update withdrawal with M-Pesa details; providers use different keys
+                withdrawal.checkout_request_id = result.get('ConversationID') or result.get('CheckoutRequestID')
+                withdrawal.merchant_request_id = result.get('MerchantRequestID') or result.get('MerchantRequestID')
+                withdrawal.response_code = result.get('ResponseCode') or result.get('ResponseCode')
+                # pick a human-facing message field if present
+                withdrawal.response_description = result.get('CustomerMessage') or result.get('Message') or result.get('ResponseDescription') or ''
                 withdrawal.save()
 
                 logger.info(f"Withdrawal initiated successfully: {withdrawal.id}")

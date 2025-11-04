@@ -8,7 +8,6 @@ from django.db.models import Sum, Count, Q, CharField
 from django.db.models.functions import Concat
 from django.db.models import Value
 from django.http import JsonResponse
-import os
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.views.decorators.csrf import csrf_exempt
@@ -22,6 +21,7 @@ from .views_mpesa_callbacks import mpesa_b2c_result, mpesa_b2c_timeout, mpesa_st
 from collections import defaultdict
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -697,10 +697,18 @@ def mpesa_settings(request):
         settings = MpesaSettings.objects.create(user=request.user)
 
     if request.method == 'POST':
-        settings.consumer_key = request.POST.get('consumer_key', '')
-        settings.consumer_secret = request.POST.get('consumer_secret', '')
-        settings.passkey = request.POST.get('passkey', '')
-        settings.shortcode = request.POST.get('shortcode', '174379')
+        # Update only non-empty fields to avoid accidentally erasing stored credentials
+        ck = request.POST.get('consumer_key')
+        cs = request.POST.get('consumer_secret')
+        pk = request.POST.get('passkey')
+        shortcode = request.POST.get('shortcode')
+        if ck is not None and ck.strip() != '':
+            settings.consumer_key = ck.strip()
+        if cs is not None and cs.strip() != '':
+            settings.consumer_secret = cs.strip()
+        if pk is not None and pk.strip() != '':
+            settings.passkey = pk.strip()
+        settings.shortcode = shortcode.strip() if shortcode else settings.shortcode or '174379'
         settings.is_sandbox = request.POST.get('is_sandbox') == 'on'
         is_active = request.POST.get('is_active') == 'on'
 
@@ -728,17 +736,24 @@ def mpesa_settings(request):
 
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt
+@login_required
 def mpesa_save_money(request):
     """Handle M-Pesa STK push for saving money"""
-    # For testing purposes, use default sandbox credentials
-    mpesa_settings = type('obj', (object,), {
-        'consumer_key': 'test_key',
-        'consumer_secret': 'test_secret',
-        'shortcode': '174379',
-        'passkey': 'test_passkey',
-        'is_sandbox': True
-    })()
+    # Use the logged-in user's MpesaSettings; require configuration
+    try:
+        mpesa_settings = MpesaSettings.objects.get(user=request.user)
+    except MpesaSettings.DoesNotExist:
+        # Not configured
+        if request.method == 'POST':
+            return JsonResponse({'error': 'M-Pesa not configured for this account'}, status=400)
+        messages.error(request, 'Please configure your M-Pesa settings first.')
+        return redirect('mpesa_settings')
+
+    if not mpesa_settings.is_active or not (mpesa_settings.consumer_key and mpesa_settings.consumer_secret and mpesa_settings.passkey):
+        if request.method == 'POST':
+            return JsonResponse({'error': 'M-Pesa integration is not active or credentials are missing'}, status=400)
+        messages.error(request, 'M-Pesa integration is not active or credentials are missing. Please configure your settings.')
+        return redirect('mpesa_settings')
 
     if request.method == 'POST':
         try:
@@ -772,10 +787,10 @@ def mpesa_save_money(request):
         # Use MpesaService
         from .services import MpesaService
         mpesa_service = MpesaService(
-            mpesa_settings.consumer_key,
-            mpesa_settings.consumer_secret,
+            mpesa_settings.get_consumer_key(),
+            mpesa_settings.get_consumer_secret(),
             mpesa_settings.shortcode,
-            mpesa_settings.passkey,
+            mpesa_settings.get_passkey(),
             mpesa_settings.is_sandbox
         )
 
@@ -899,10 +914,10 @@ def mpesa_withdraw_money(request):
     # Calculate available balance
     from .services import MpesaService
     mpesa_service = MpesaService(
-        settings.consumer_key,
-        settings.consumer_secret,
+        settings.get_consumer_key(),
+        settings.get_consumer_secret(),
         settings.shortcode,
-        settings.passkey,
+        settings.get_passkey(),
         settings.is_sandbox
     )
     available_balance = mpesa_service.get_withdrawal_balance(request.user)
@@ -991,10 +1006,10 @@ def mpesa_test_connection(request):
 
     from .services import MpesaService
     mpesa_service = MpesaService(
-        settings.consumer_key,
-        settings.consumer_secret,
+        settings.get_consumer_key(),
+        settings.get_consumer_secret(),
         settings.shortcode,
-        settings.passkey,
+        settings.get_passkey(),
         settings.is_sandbox
     )
 

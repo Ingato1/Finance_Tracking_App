@@ -2,6 +2,14 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+import os
+
+# Optional field-level encryption using Fernet. To enable, set env var MPESA_ENCRYPTION_KEY
+try:
+    from cryptography.fernet import Fernet, InvalidToken
+except Exception:
+    Fernet = None
+    InvalidToken = Exception
 
 class ExpenseCategory(models.Model):
     PREDEFINED_CATEGORIES = [
@@ -133,6 +141,78 @@ class MpesaSettings(models.Model):
 
     def __str__(self):
         return f"M-Pesa Settings for {self.user.username}"
+
+    # --- Optional encryption helpers ---
+    @staticmethod
+    def _get_fernet():
+        key = os.environ.get('MPESA_ENCRYPTION_KEY')
+        if not key or not Fernet:
+            return None
+        try:
+            return Fernet(key)
+        except Exception:
+            return None
+
+    def _maybe_decrypt(self, value: str) -> str:
+        """If encryption key is present, attempt to decrypt; otherwise return raw value.
+
+        If decryption fails (invalid token), assume stored value is plaintext and return as-is.
+        """
+        if not value:
+            return value
+        f = self._get_fernet()
+        if not f:
+            return value
+        try:
+            # f.decrypt expects bytes
+            return f.decrypt(value.encode()).decode()
+        except InvalidToken:
+            # value may be stored plaintext
+            return value
+        except Exception:
+            return value
+
+    def _maybe_encrypt(self, value: str) -> str:
+        """Encrypt value when key present; otherwise return raw."""
+        if not value:
+            return value
+        f = self._get_fernet()
+        if not f:
+            return value
+        try:
+            return f.encrypt(value.encode()).decode()
+        except Exception:
+            return value
+
+    # Public getters that other code should use to avoid exposing raw DB values
+    def get_consumer_key(self):
+        return self._maybe_decrypt(self.consumer_key)
+
+    def get_consumer_secret(self):
+        return self._maybe_decrypt(self.consumer_secret)
+
+    def get_passkey(self):
+        return self._maybe_decrypt(self.passkey)
+
+    def encrypt_and_save(self):
+        """Encrypt stored secret fields in-place and save the model. Safe to call repeatedly.
+
+        Only encrypts when MPESA_ENCRYPTION_KEY is set and cryptography is available.
+        """
+        f = self._get_fernet()
+        if not f:
+            return self
+        # If values are already encrypted, _maybe_encrypt will re-encrypt (we avoid double-encrypt by
+        # attempting to decrypt first via _maybe_decrypt; if decrypt returns a different string, replace)
+        ck = self._maybe_decrypt(self.consumer_key)
+        cs = self._maybe_decrypt(self.consumer_secret)
+        pk = self._maybe_decrypt(self.passkey)
+
+        self.consumer_key = self._maybe_encrypt(ck) if ck else ''
+        self.consumer_secret = self._maybe_encrypt(cs) if cs else ''
+        self.passkey = self._maybe_encrypt(pk) if pk else ''
+        self.save()
+        return self
 
 class MpesaWithdrawal(models.Model):
     WITHDRAWAL_STATUS_CHOICES = [

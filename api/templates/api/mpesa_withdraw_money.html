@@ -111,7 +111,7 @@
                                 {% endfor %}
                             {% endif %}
 
-                            <form method="post">
+                            <form method="post" id="withdrawForm">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="phone_number" class="form-label">Phone Number</label>
@@ -216,6 +216,49 @@ document.getElementById('amount').addEventListener('input', function(e) {
     } else {
         e.target.setCustomValidity('');
     }
+});
+// Intercept withdrawal form submit and send JSON via fetch with CSRF
+function getCsrfToken() {
+    const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return el ? el.value : '';
+}
+
+document.getElementById('withdrawForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const phoneNumber = document.getElementById('phone_number').value;
+    const amount = document.getElementById('amount').value;
+    const confirmChecked = document.getElementById('confirm_withdrawal').checked;
+
+    if (!confirmChecked) {
+        alert('Please confirm the withdrawal before proceeding.');
+        return;
+    }
+
+    const csrftoken = getCsrfToken();
+
+    fetch('{% url "mpesa_withdraw_money" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ phone_number: phoneNumber, amount: amount })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Withdrawal initiated');
+            window.location.href = '{% url "mpesa_withdrawals" %}';
+        } else if (data.error) {
+            alert('Error: ' + (data.error.message || JSON.stringify(data.error) || data.error));
+        } else {
+            alert('Unexpected response from server');
+        }
+    })
+    .catch(err => {
+        console.error('Withdrawal error', err);
+        alert('Failed to initiate withdrawal: ' + err.message);
+    });
 });
 </script>
 

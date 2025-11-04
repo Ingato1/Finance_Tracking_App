@@ -181,8 +181,13 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function getCsrfToken() {
+            const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            return el ? el.value : '';
+        }
+
         // Format phone number as user types
         document.getElementById('phone_number').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
@@ -200,22 +205,48 @@
             e.target.value = value;
         });
 
-        // Form validation
+        // Intercept form submit and POST JSON via fetch with CSRF
         document.getElementById('saveMoneyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             const phoneNumber = document.getElementById('phone_number').value;
             const amount = document.getElementById('amount').value;
 
             if (phoneNumber.length < 10) {
-                e.preventDefault();
                 alert('Please enter a valid phone number (at least 10 digits)');
-                return false;
+                return;
             }
 
             if (parseFloat(amount) < 1) {
-                e.preventDefault();
                 alert('Amount must be at least KSH 1');
-                return false;
+                return;
             }
+
+            const csrftoken = getCsrfToken();
+
+            fetch('{% url "mpesa_save_money" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ phone_number: phoneNumber, amount: amount })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'STK Push sent. Check your phone.');
+                    // optionally redirect or refresh
+                    location.reload();
+                } else if (data.error) {
+                    alert('Error: ' + (data.error.message || JSON.stringify(data.error) || data.error));
+                } else {
+                    alert('Unexpected response from server');
+                }
+            })
+            .catch(err => {
+                console.error('STK push error', err);
+                alert('Failed to initiate STK push: ' + err.message);
+            });
         });
     </script>
 </body>
