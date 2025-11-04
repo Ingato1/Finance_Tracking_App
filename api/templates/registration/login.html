@@ -114,7 +114,8 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <img src="{% static 'images/logo.svg' %}" alt="SaveWise Logo" class="logo">
+            <img src="{% static 'images/logo.svg' %}" alt="SaveWise Logo" class="logo" onerror="this.style.display='none'; var t=this.nextElementSibling; if(t) t.style.display='block';">
+            <div class="logo-text" style="display:none;font-weight:700;font-size:18px;color:#333;margin-bottom:8px;">SaveWise</div>
             <h2><i class="fas fa-chart-line text-primary me-2"></i>SaveWise</h2>
             <div class="subtitle">Welcome back! Please sign in to your account.</div>
         </div>
