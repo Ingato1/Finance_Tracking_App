@@ -27,9 +27,12 @@ IS_VERCEL = os.environ.get('VERCEL')
 DEBUG = not IS_VERCEL  # True in development, False in Vercel
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-123456789')
-if not SECRET_KEY and not DEBUG:
-    raise ValueError("SECRET_KEY environment variable is required in production")
+# Prefer DJANGO_SECRET_KEY (used by vercel.json) but fall back to SECRET_KEY for compatibility.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production-123456789'
+# In production (DEBUG=False) ensure a real secret key is provided
+if not SECRET_KEY or SECRET_KEY.startswith('dev-'):
+    if not DEBUG:
+        raise ValueError("A secure SECRET_KEY (DJANGO_SECRET_KEY or SECRET_KEY) is required in production")
 
 # Debug and Hosts configuration
 if IS_VERCEL:
@@ -182,6 +185,33 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Crispy Forms
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+# Basic logging configuration to ensure exceptions are visible in stdout (useful on Vercel)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        # Capture our app logs at INFO for easier debugging when needed
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 # M-Pesa Integration Settings
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')

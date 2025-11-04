@@ -1,61 +1,75 @@
 #!/bin/bash
+set -e  # Exit immediately if a command exits with a non-zero status
 
-echo "=== Starting Django Build Process ==="
+# Function to log with timestamps
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
 
-# Install dependencies
-echo "1. Installing Python dependencies..."
-pip install -r requirements.txt
-
-# Check if installation was successful
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to install dependencies"
+# Function to handle errors
+error_exit() {
+    log "ERROR: $1"
     exit 1
+}
+
+log "=== Starting Django Build Process ==="
+
+# Ensure DJANGO_SETTINGS_MODULE is set
+if [ -z "$DJANGO_SETTINGS_MODULE" ]; then
+    export DJANGO_SETTINGS_MODULE="app.settings"
+    log "Set DJANGO_SETTINGS_MODULE to app.settings"
 fi
+
+# Install dependencies with error capture
+log "1. Installing Python dependencies..."
+if ! pip install -r requirements.txt > pip_install.log 2>&1; then
+    cat pip_install.log
+    error_exit "Failed to install dependencies. See error above."
+fi
+rm pip_install.log
 
 # Create necessary directories
-echo "2. Creating directories..."
-mkdir -p staticfiles_build/static
-mkdir -p /tmp  # Ensure /tmp exists for SQLite
+log "2. Creating directories..."
+mkdir -p staticfiles || error_exit "Failed to create staticfiles directory"
+mkdir -p /tmp || log "Warning: Could not create /tmp directory, it may already exist"
 
-# Apply database migrations
-echo "3. Applying database migrations..."
-python manage.py migrate --noinput
-
-# Check if migrations were successful
-if [ $? -ne 0 ]; then
-    echo "Warning: Database migrations failed, but continuing build..."
+# Clean existing static files to prevent stale assets
+if [ -d "staticfiles" ]; then
+    log "Cleaning existing static files..."
+    rm -rf staticfiles/* || error_exit "Failed to clean staticfiles directory"
 fi
-
-# Create default categories and data
-echo "4. Creating default categories..."
-python manage.py shell -c "
-import os
-import django
-from django.core.management import setup_environ
-
-# Setup Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.settings')
-django.setup()
-
-from api.models import ExpenseCategory
-
-# Create default categories
-categories = ['food', 'utilities', 'rent', 'clothes', 'transport', 'others']
-for category in categories:
-    ExpenseCategory.objects.get_or_create(
-        name=category,
-        defaults={'description': f'Default category: {category}'}
-    )
-print('Default categories created/verified successfully')
-"
 
 # Collect static files
-echo "5. Collecting static files..."
-python manage.py collectstatic --noinput --clear
+log "3. Collecting static files..."
+if ! python manage.py collectstatic --noinput --clear > static_collect.log 2>&1; then
+    cat static_collect.log
+    error_exit "Static file collection failed. See error above."
+fi
+rm static_collect.log
 
-# Check if static collection was successful
-if [ $? -ne 0 ]; then
-    echo "Warning: Static file collection had issues, but continuing build..."
+# Verify static files exist
+if [ ! -d "staticfiles" ] || [ -z "$(ls -A staticfiles 2>/dev/null)" ]; then
+    error_exit "Static files directory is empty after collection"
 fi
 
-echo "6. Build completed successfully!"
+# Optional: Apply migrations if DATABASE_URL is set
+# Note: This runs migrations during build, which is only safe for remote DBs
+if [ ! -z "$DATABASE_URL" ]; then
+    log "4. Applying database migrations (DATABASE_URL is set)..."
+    if ! python manage.py migrate --noinput > migrations.log 2>&1; then
+        cat migrations.log
+        error_exit "Database migrations failed. See error above."
+    fi
+    rm migrations.log
+else
+    log "Skipping migrations: No DATABASE_URL set (will run at startup instead)"
+fi
+
+# Check static files were collected
+log "5. Verifying build artifacts..."
+if [ ! -f "staticfiles/css/mobile-responsive.css" ]; then
+    error_exit "Critical static file missing after collection"
+fi
+
+log "=== Build completed successfully! ==="
+exit 0
