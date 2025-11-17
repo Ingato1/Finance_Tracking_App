@@ -1,4 +1,3 @@
-# finance_app/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
@@ -7,7 +6,7 @@ from django.db import connection
 from django.db.models import Sum, Count, Q, CharField
 from django.db.models.functions import Concat
 from django.db.models import Value
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.views.decorators.csrf import csrf_exempt
@@ -15,7 +14,7 @@ from django.conf import settings
 import requests
 import base64
 import json as json_lib
-from .models import Expense, Budget, ExpenseCategory, MpesaTransaction, MpesaSettings, MpesaWithdrawal
+from .models import Transaction, Budget, Category, BudgetCategories, MpesaTransaction, MpesaSettings, MpesaWithdrawal, UserProfile, SavingsGoals, Notification, Expense, ExpenseCategory
 from .forms import ExpenseForm, BudgetForm, CustomUserCreationForm, CategoryForm
 from .views_mpesa_callbacks import mpesa_b2c_result, mpesa_b2c_timeout, mpesa_stk_callback
 from collections import defaultdict
@@ -128,30 +127,45 @@ def logout_view(request):
 def dashboard(request):
     # Get current month's budget
     current_month = timezone.now().replace(day=1)
+    next_month = (current_month + timedelta(days=32)).replace(day=1)
+
+    # Find budget that covers the current month
     try:
-        budget = Budget.objects.get(user=request.user, month=current_month)
+        budget = Budget.objects.filter(
+            user=request.user,
+            start_date__lte=current_month
+        ).filter(
+            Q(end_date__gte=current_month) | Q(end_date__isnull=True)
+        ).first()
     except Budget.DoesNotExist:
         budget = None
-    
+
     # Get expenses for the current month
     expenses = Expense.objects.filter(
-        user=request.user, 
+        user=request.user,
         date__month=current_month.month,
         date__year=current_month.year
     )
-    
+
     total_spent = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    
-    # Add percentage calculation
+
+    # Add percentage calculation for budget
     if budget:
-        if budget.amount > 0:
-            budget.percentage = (total_spent / budget.amount) * 100
+        # Get total allocated amount for this budget
+        total_budget_amount = BudgetCategories.objects.filter(
+            budget=budget
+        ).aggregate(Sum('allocated_amount'))['allocated_amount__sum'] or 0
+
+        if total_budget_amount > 0:
+            budget.percentage = (total_spent / total_budget_amount) * 100
+            budget.amount = total_budget_amount  # Add for template compatibility
         else:
             budget.percentage = 0
-    
+            budget.amount = 0
+
     # Check if budget is exceeded
     budget_exceeded = False
-    if budget and total_spent > budget.amount:
+    if budget and hasattr(budget, 'amount') and total_spent > budget.amount:
         budget_exceeded = True
         messages.warning(request, f'You have exceeded your monthly budget of KSH {budget.amount}!')
     
@@ -691,10 +705,12 @@ def delete_category(request, category_id):
 @login_required
 def mpesa_settings(request):
     """Configure M-Pesa settings for the user"""
+    if settings.DEBUG:
+        raise Http404()
     try:
-        settings = MpesaSettings.objects.get(user=request.user)
+        mpesa_settings = MpesaSettings.objects.get(user=request.user)
     except MpesaSettings.DoesNotExist:
-        settings = MpesaSettings.objects.create(user=request.user)
+        mpesa_settings = MpesaSettings.objects.create(user=request.user)
 
     if request.method == 'POST':
         # Update only non-empty fields to avoid accidentally erasing stored credentials
@@ -703,38 +719,36 @@ def mpesa_settings(request):
         pk = request.POST.get('passkey')
         shortcode = request.POST.get('shortcode')
         if ck is not None and ck.strip() != '':
-            settings.consumer_key = ck.strip()
+            mpesa_settings.consumer_key = ck.strip()
         if cs is not None and cs.strip() != '':
-            settings.consumer_secret = cs.strip()
+            mpesa_settings.consumer_secret = cs.strip()
         if pk is not None and pk.strip() != '':
-            settings.passkey = pk.strip()
-        settings.shortcode = shortcode.strip() if shortcode else settings.shortcode or '174379'
-        settings.is_sandbox = request.POST.get('is_sandbox') == 'on'
+            mpesa_settings.passkey = pk.strip()
+        mpesa_settings.shortcode = shortcode.strip() if shortcode else mpesa_settings.shortcode or '174379'
+        mpesa_settings.is_sandbox = request.POST.get('is_sandbox') == 'on'
         is_active = request.POST.get('is_active') == 'on'
 
         # Validate credentials when activating
         if is_active:
-            if not settings.consumer_key or not settings.consumer_secret or not settings.passkey:
+            if not mpesa_settings.consumer_key or not mpesa_settings.consumer_secret or not mpesa_settings.passkey:
                 messages.error(request, 'All M-Pesa credentials (Consumer Key, Consumer Secret, and Passkey) are required to activate the integration.')
                 return redirect('mpesa_settings')
 
-        settings.is_active = is_active
-        settings.save()
+        mpesa_settings.is_active = is_active
+        mpesa_settings.save()
 
         messages.success(request, 'M-Pesa settings updated successfully!')
         return redirect('mpesa_settings')
 
-    is_configured = settings.is_active and all([
-        settings.consumer_key, settings.consumer_secret, settings.passkey
+    is_configured = mpesa_settings.is_active and all([
+        mpesa_settings.consumer_key, mpesa_settings.consumer_secret, mpesa_settings.passkey
     ])
 
     context = {
-        'settings': settings,
+        'settings': mpesa_settings,
         'is_configured': is_configured
     }
     return render(request, 'api/mpesa_settings.html', context)
-
-from django.views.decorators.csrf import csrf_exempt
 
 @login_required
 def mpesa_save_money(request):

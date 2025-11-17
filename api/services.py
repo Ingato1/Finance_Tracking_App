@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
-from .models import MpesaTransaction, MpesaWithdrawal
+from .models import Transaction, MpesaTransaction, MpesaWithdrawal
 
 logger = logging.getLogger(__name__)
 

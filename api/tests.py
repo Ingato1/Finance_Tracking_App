@@ -20,7 +20,8 @@ class BudgetTestCase(TestCase):
         self.existing_budget = Budget.objects.create(
             user=self.user,
             amount=1000,
-            month=current_month
+            month=current_month,
+            start_date=current_month
         )
         
         # Create a budget for next month
@@ -101,3 +102,39 @@ class BudgetTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         # Check if budget data is processed
         self.assertIn('budget_comparison_budget', response.context)
+
+    def test_budget_query_fix(self):
+        """Test that budgets with end_date >= current_month or end_date null are found"""
+        from datetime import timedelta
+
+        # Create a budget that spans multiple months (ongoing)
+        current_month = timezone.now().replace(day=1)
+        future_date = current_month + timedelta(days=60)  # 2 months ahead
+
+        ongoing_budget = Budget.objects.create(
+            user=self.user,
+            amount=2000,
+            start_date=current_month,
+            end_date=future_date
+        )
+
+        # Create a budget with no end date (ongoing)
+        no_end_budget = Budget.objects.create(
+            user=self.user,
+            amount=3000,
+            start_date=current_month,
+            end_date=None
+        )
+
+        # Test dashboard view finds these budgets
+        response = self.client.get('/api/dashboard/')
+        self.assertEqual(response.status_code, 200)
+
+        # Should find one of the budgets (the first one in the query)
+        budget_in_context = response.context['budget']
+        self.assertIsNotNone(budget_in_context)
+        self.assertIn(budget_in_context.amount, [2000, 3000])
+
+        # Clean up
+        ongoing_budget.delete()
+        no_end_budget.delete()

@@ -1,7 +1,7 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth.models import User
-from .models import Expense, Budget, ExpenseCategory
+from .models import Transaction, Budget, Category, UserProfile, SavingsGoals, Expense, ExpenseCategory
 from datetime import datetime
 import re
 
@@ -40,7 +40,69 @@ class CustomUserCreationForm(UserCreationForm):
         user.email = self.cleaned_data["email"]
         if commit:
             user.save()
+            # Create UserProfile automatically
+            UserProfile.objects.create(user=user)
         return user
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['phone_number', 'mpesa_api_token', 'preferences']
+        widgets = {
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+254712345678'}),
+            'mpesa_api_token': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'preferences': forms.HiddenInput(),
+        }
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number:
+            # Remove all non-digit characters
+            cleaned = re.sub(r'\D', '', phone_number)
+            # Check if it's a valid Kenyan number
+            if len(cleaned) == 12 and cleaned.startswith('254'):
+                return f"+{cleaned}"
+            elif len(cleaned) == 9 and cleaned.startswith('7'):
+                return f"+254{cleaned}"
+            elif len(cleaned) == 10 and cleaned.startswith('07'):
+                return f"+254{cleaned[1:]}"
+            else:
+                raise forms.ValidationError("Please enter a valid Kenyan phone number.")
+        return phone_number
+
+class SavingsGoalsForm(forms.ModelForm):
+    class Meta:
+        model = SavingsGoals
+        fields = ['name', 'target_amount', 'target_date']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'target_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def clean_target_date(self):
+        target_date = self.cleaned_data.get('target_date')
+        if target_date and target_date <= datetime.now().date():
+            raise forms.ValidationError("Target date must be in the future.")
+        return target_date
+
+class CustomPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control'}),
+        help_text="Enter the email address associated with your account."
+    )
+
+class CustomSetPasswordForm(SetPasswordForm):
+    new_password1 = forms.CharField(
+        label="New password",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        help_text="Your password must contain at least 8 characters."
+    )
+    new_password2 = forms.CharField(
+        label="New password confirmation",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        help_text="Enter the same password as before, for verification."
+    )
 
 class ExpenseForm(forms.ModelForm):
     class Meta:
@@ -55,48 +117,15 @@ class ExpenseForm(forms.ModelForm):
         }
 
 class BudgetForm(forms.ModelForm):
-    month = forms.CharField(
-        widget=forms.TextInput(attrs={
-            'type': 'month',
-            'class': 'form-control'
-        })
-    )
-
     class Meta:
         model = Budget
-        fields = ['amount', 'month']
+        fields = ['name', 'period_type', 'start_date', 'end_date']
         widgets = {
-            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'period_type': forms.Select(attrs={'class': 'form-control'}),
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
-    
-    def clean_month(self):
-        month = self.cleaned_data.get('month')
-        print(f"DEBUG: clean_month received: {month} (type: {type(month)})")
-        
-        if not month:
-            return month
-            
-        # If it's a string (from HTML5 input), convert it to date
-        if isinstance(month, str):
-            try:
-                # Handle YYYY-MM format from HTML5 month input
-                if re.match(r'^\d{4}-\d{2}$', month):
-                    year, month_num = map(int, month.split('-'))
-                    if 1 <= month_num <= 12:
-                        return datetime(year, month_num, 1).date()
-                    else:
-                        raise forms.ValidationError("Month must be between 01 and 12.")
-                else:
-                    raise forms.ValidationError("Please use YYYY-MM format (e.g., 2025-05).")
-            except (ValueError, TypeError) as e:
-                print(f"DEBUG: Conversion error: {e}")
-                raise forms.ValidationError("Enter a valid date in YYYY-MM format.")
-        
-        # If it's already a date object, ensure it's the first day of month
-        elif hasattr(month, 'replace'):
-            return month.replace(day=1)
-        
-        return month
 
 class CategoryForm(forms.ModelForm):
     CATEGORY_CHOICES = [
